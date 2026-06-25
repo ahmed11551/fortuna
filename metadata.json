@@ -1,0 +1,6 @@
+{
+  "name": "Озон Фортуна",
+  "description": "Колесо Фортуны в стиле Ozon — крутите колесо, выигрывайте призы, покупайте билеты и участвуйте в розыгрышах!",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
