@@ -3,11 +3,46 @@ import {
   Ticket, User as UserIcon, Share2, Shield, Award, Gift, 
   Sparkles, Copy, Check, ChevronRight, RefreshCw, 
   TrendingUp, DollarSign, Package, Compass, Plus, 
-  Clock, MapPin, Phone, UserPlus, Sliders, Play, Trash2,
+  Clock, MapPin, Phone, UserPlus, Sliders, Play, Trash2, Info,
   Smartphone, Gamepad2, Headphones, Watch, CreditCard
 } from "lucide-react";
 import { User, Transaction, Prize, Winner, Raffle, AdminStats } from "./types";
 import Roulette from "./components/Roulette";
+import Confetti from "./components/Confetti";
+
+// Play a celebratory synth arpeggio on win using Web Audio API
+const playWinChime = () => {
+  try {
+    const audioCtx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6 arpeggio
+    const duration = 0.18;
+    const gap = 0.06;
+    
+    notes.forEach((freq, index) => {
+      const time = audioCtx.currentTime + index * (duration + gap);
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      
+      oscillator.type = "sine";
+      oscillator.frequency.setValueAtTime(freq, time);
+      
+      // Add vibrato/warmth
+      oscillator.frequency.exponentialRampToValueAtTime(freq * 1.01, time + duration);
+      
+      gainNode.gain.setValueAtTime(0, time);
+      gainNode.gain.linearRampToValueAtTime(0.12, time + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, time + duration);
+      
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      
+      oscillator.start(time);
+      oscillator.stop(time + duration);
+    });
+  } catch (e) {
+    // Fail silently if blocked by browser autoplay policy
+  }
+};
 
 // Showcase data for super prizes showroom with real Unsplash images
 const SHOWROOM_PRIZES = [
@@ -247,6 +282,7 @@ export default function App() {
   const [wonPrize, setWonPrize] = useState<Prize | null>(null);
   const [prizeWinnerId, setPrizeWinnerId] = useState<string | null>(null);
   const [showWinModal, setShowWinModal] = useState(false);
+  const [showHelpModal, setShowHelpModal] = useState(false);
 
   // Custom Delivery Form state
   const [deliveryName, setDeliveryName] = useState("");
@@ -475,6 +511,7 @@ export default function App() {
     setIsSpinning(false);
     setTargetPrizeId(null);
     setShowWinModal(true);
+    playWinChime();
     
     // Refresh user balance and history from DB
     if (user) {
@@ -706,7 +743,12 @@ export default function App() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#F4F6FA] text-slate-900 font-sans selection:bg-[#F91155]/20 flex flex-col items-center pb-24">
+    <div className="min-h-screen bg-[#F4F6FA] text-slate-900 font-sans selection:bg-[#F91155]/20 flex flex-col items-center pb-24 relative overflow-hidden">
+      
+      {/* Premium Background Glowing Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[45%] h-[45%] rounded-full bg-gradient-to-br from-[#005BFF]/10 to-transparent blur-[120px] pointer-events-none z-0" />
+      <div className="absolute bottom-[10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-gradient-to-tr from-[#F91155]/8 to-transparent blur-[140px] pointer-events-none z-0" />
+      <div className="absolute top-[35%] right-[15%] w-[30%] h-[30%] rounded-full bg-blue-500/[0.04] blur-[100px] pointer-events-none z-0" />
       
       {/* Toast Notification */}
       {toast && (
@@ -820,16 +862,18 @@ export default function App() {
       <main className="max-w-5xl w-full px-4 sm:px-6 flex-1 flex flex-col py-6 relative">
         
         {/* App Branding Header in Ozon Style */}
-        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#005BFF] rounded-xl flex items-center justify-center shadow-lg shadow-blue-200 shrink-0">
-              <div className="w-5 h-5 border-2 border-white rounded-full border-t-transparent animate-spin-slow"></div>
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8 relative z-10">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 bg-gradient-to-tr from-[#005BFF] via-[#005BFF] to-[#F91155] rounded-2xl flex items-center justify-center shadow-lg shadow-blue-500/10 shrink-0 relative overflow-hidden group">
+              <Sparkles className="w-6 h-6 text-white" />
+              <div className="absolute -inset-full h-full w-1/2 z-5 block transform -skew-x-12 bg-gradient-to-r from-transparent via-white/25 to-transparent opacity-40 animate-shine" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-black tracking-tight text-[#005BFF]">
-                FORTUNA <span className="text-slate-400 font-light">| OZON STYLE</span>
+              <h1 className="text-2xl font-black tracking-tight flex items-center gap-2 leading-none">
+                <span className="text-[#005BFF] tracking-tight">FORTUNA</span>
+                <span className="bg-gradient-to-r from-[#F91155] to-pink-500 bg-clip-text text-transparent font-black px-2 py-1 rounded-lg bg-pink-50 text-[10px] uppercase tracking-widest border border-pink-100/60 self-center">OZON STYLE</span>
               </h1>
-              <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Розыгрыши и Колесо Удачи</p>
+              <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-1">Розыгрыши и Колесо Удачи</p>
             </div>
           </div>
 
@@ -837,24 +881,24 @@ export default function App() {
             {user && (
               <div 
                 onClick={() => setActiveTab("buy")}
-                className="bg-white px-4 py-2 rounded-2xl border border-slate-200 shadow-sm flex items-center gap-3 cursor-pointer hover:border-[#005BFF] transition-all"
+                className="bg-white/95 backdrop-blur-md px-4.5 py-2.5 rounded-2xl border border-slate-200 shadow-sm hover:border-[#005BFF] hover:shadow-md hover:shadow-blue-500/5 transition-all flex items-center gap-3 cursor-pointer"
               >
-                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest hidden sm:inline">Ваш Баланс</span>
+                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest hidden sm:inline">Баланс</span>
                 <div className="flex items-center gap-1.5">
-                  <div className="w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center">
-                    <span className="text-[10px] font-bold text-amber-900">₮</span>
+                  <div className="w-5.5 h-5.5 bg-amber-400 rounded-full flex items-center justify-center shadow-sm">
+                    <span className="text-[11px] font-black text-amber-950">₮</span>
                   </div>
-                  <span className="text-lg font-black text-slate-900 font-mono">{user.balance_tickets}</span>
-                  <span className="text-xs font-medium text-slate-500">билетов</span>
+                  <span className="text-lg font-black text-slate-900 font-mono leading-none">{user.balance_tickets}</span>
+                  <span className="text-[11px] font-bold text-slate-500 leading-none">билетов</span>
                 </div>
               </div>
             )}
             {user && (
               <div 
                 onClick={() => setActiveTab("profile")}
-                className="w-12 h-12 bg-white rounded-full border-2 border-[#F91155] p-0.5 overflow-hidden shadow-sm cursor-pointer hover:scale-105 transition-transform"
+                className="w-11 h-11 bg-white rounded-full border-2 border-[#F91155] p-0.5 overflow-hidden shadow-sm cursor-pointer hover:scale-105 transition-transform"
               >
-                <div className="w-full h-full rounded-full bg-slate-100 flex items-center justify-center text-[#F91155] font-black text-sm uppercase">
+                <div className="w-full h-full rounded-full bg-pink-50 flex items-center justify-center text-[#F91155] font-black text-xs uppercase">
                   {user.username.slice(0, 2)}
                 </div>
               </div>
@@ -872,13 +916,21 @@ export default function App() {
             
             {/* 1. GAME VIEW */}
             {activeTab === "game" && user && (
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fade-in text-slate-800">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6 animate-fade-in text-slate-800 relative z-10">
                 
                 {/* Main Game: The Wheel (col-span-1 md:col-span-2 md:row-span-2) */}
-                <div className="md:col-span-2 md:row-span-2 bg-white rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 shadow-sm relative overflow-hidden flex flex-col items-center justify-center p-6 sm:p-8">
-                  <div className="absolute top-6 left-6 sm:left-8 bg-blue-50 text-[#005BFF] px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider">
-                    Супер-приз: iPhone 16 Pro
+                <div className="md:col-span-2 md:row-span-2 bg-white/95 backdrop-blur-md rounded-[2.5rem] border border-slate-200/80 shadow-md shadow-slate-100/50 relative overflow-hidden flex flex-col items-center justify-center p-6 sm:p-8 hover:shadow-lg hover:border-slate-300/80 transition-all duration-300">
+                  <div className="absolute top-6 left-6 sm:left-8 bg-blue-50/80 border border-blue-100 text-[#005BFF] px-4 py-1.5 rounded-full text-[10px] sm:text-xs font-black uppercase tracking-wider">
+                    Супер-приз: iPhone 16 ProMax
                   </div>
+
+                  <button 
+                    onClick={() => setShowHelpModal(true)}
+                    className="absolute top-6 right-6 sm:right-8 h-8 w-8 rounded-full bg-white border border-slate-200 hover:border-slate-300 hover:bg-slate-50 flex items-center justify-center text-slate-500 hover:text-[#F91155] transition-all cursor-pointer shadow-sm z-10 active:scale-95"
+                    title="Правила игры"
+                  >
+                    <Info size={15} />
+                  </button>
                   
                   {/* Wheel container */}
                   <div className="w-full mt-8">
@@ -893,30 +945,36 @@ export default function App() {
                     />
                   </div>
                   
-                  <p className="mt-4 text-slate-400 text-xs sm:text-sm font-medium">Стоимость: 1 билет</p>
+                  <p className="mt-4 text-slate-400 text-xs sm:text-xs font-bold uppercase tracking-wider">Стоимость: 1 билет</p>
                 </div>
 
                 {/* Referral Program (col-span-1) */}
-                <div className="md:col-span-1 bg-[#005BFF] rounded-[2rem] sm:rounded-[2.5rem] p-6 text-white flex flex-col justify-between shadow-sm min-h-[220px]">
-                  <div>
-                    <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center mb-4 text-xl">
+                <div className="md:col-span-1 bg-gradient-to-br from-[#005BFF] via-[#005BFF] to-[#004CD5] rounded-[2.5rem] p-6 text-white flex flex-col justify-between shadow-lg shadow-blue-500/10 min-h-[220px] relative overflow-hidden group hover:scale-[1.01] transition-all duration-300">
+                  <div className="absolute right-[-10%] top-[-10%] w-24 h-24 bg-white/5 rounded-full pointer-events-none" />
+                  <div className="relative z-10">
+                    <div className="w-10 h-10 bg-white/15 backdrop-blur-md rounded-xl flex items-center justify-center mb-4 text-xl border border-white/10">
                       🚀
                     </div>
-                    <h3 className="text-lg sm:text-xl font-bold leading-tight mb-2">Приведи друга — получи +1 билет</h3>
-                    <p className="text-blue-100 text-xs sm:text-sm mb-4">Ваш друг получит 5 билетов на старт!</p>
-                    <p className="text-blue-100 text-xs font-mono bg-white/10 p-2 rounded-lg inline-block">Код: <span className="font-bold text-white">{user.referral_code}</span></p>
+                    <h3 className="text-lg sm:text-xl font-black leading-tight mb-2">Приведи друга — получи +1 билет</h3>
+                    <p className="text-blue-100/90 text-xs sm:text-xs leading-relaxed mb-4">Ваш друг получит 5 приветственных билетов сразу!</p>
+                    <p className="text-blue-100/80 text-[10px] font-mono bg-white/10 px-3 py-1.5 rounded-xl inline-block border border-white/5">
+                      Код: <span className="font-black text-white text-xs tracking-wider">{user.referral_code}</span>
+                    </p>
                   </div>
                   <button 
                     onClick={() => handleCopyText(getRefLink())}
-                    className="w-full bg-white text-[#005BFF] py-3 rounded-xl font-bold text-sm mt-4 hover:bg-blue-50 transition-colors cursor-pointer"
+                    className="w-full bg-white text-[#005BFF] hover:bg-blue-50 py-3 rounded-2xl font-black text-xs uppercase tracking-wider mt-4 transition-all duration-200 cursor-pointer shadow-md shadow-blue-800/10 active:scale-[0.98] relative z-10"
                   >
                     КОПИРОВАТЬ ССЫЛКУ
                   </button>
                 </div>
 
                 {/* Winners Feed (col-span-1 md:row-span-2) */}
-                <div className="md:col-span-1 md:row-span-2 bg-white rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 p-6 flex flex-col shadow-sm">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-6">Недавние выигрыши</h3>
+                <div className="md:col-span-1 md:row-span-2 bg-white/95 backdrop-blur-md rounded-[2.5rem] border border-slate-200/80 p-6 flex flex-col shadow-sm hover:shadow-md transition-all duration-300">
+                  <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-1.5">
+                    <Award size={14} className="text-[#F91155]" />
+                    <span>Недавние выигрыши</span>
+                  </h3>
                   <div className="space-y-4 flex-1 overflow-y-auto max-h-[300px] pr-1">
                     {winners.length === 0 ? (
                       <div className="text-xs text-slate-400 text-center py-6 font-medium">Пока нет победителей. Будьте первыми!</div>
@@ -941,7 +999,7 @@ export default function App() {
                   <div className="mt-6 text-center">
                     <button 
                       onClick={() => setActiveTab("profile")}
-                      className="text-[#005BFF] text-xs font-bold border-b border-blue-200 pb-0.5 hover:border-[#005BFF] transition-all cursor-pointer"
+                      className="text-[#005BFF] text-xs font-black uppercase tracking-wider border-b-2 border-blue-100 pb-0.5 hover:border-[#005BFF] transition-all cursor-pointer"
                     >
                       ВСЕ ПОБЕДИТЕЛИ
                     </button>
@@ -949,14 +1007,14 @@ export default function App() {
                 </div>
 
                 {/* Special Offer / Daily Bonus (col-span-1) */}
-                <div className="md:col-span-1 bg-white rounded-[2rem] sm:rounded-[2.5rem] border border-slate-200 p-6 flex flex-col justify-center items-center gap-2 overflow-hidden relative shadow-sm text-center">
-                  <div className="absolute -right-4 -top-4 w-12 h-12 bg-[#F91155]/10 rotate-45"></div>
-                  <span className="text-3xl">🎁</span>
-                  <h4 className="font-bold text-sm text-slate-800">Ежедневный бонус</h4>
-                  <span className="text-xs text-slate-400 leading-relaxed px-2">Заходите каждый день и получайте 1 билет бесплатно</span>
+                <div className="md:col-span-1 bg-white/95 backdrop-blur-md rounded-[2.5rem] border border-slate-200/80 p-6 flex flex-col justify-center items-center gap-2.5 overflow-hidden relative shadow-sm text-center hover:shadow-md transition-all duration-300">
+                  <div className="absolute -right-4 -top-4 w-12 h-12 bg-[#F91155]/10 rotate-45 pointer-events-none" />
+                  <span className="text-3.5xl">🎁</span>
+                  <h4 className="font-black text-sm text-slate-800">Ежедневный бонус</h4>
+                  <span className="text-xs text-slate-400 leading-relaxed px-2">Заходите каждый день и получайте 1 билет абсолютно бесплатно</span>
                   <button 
                     onClick={() => handleBuyTickets(1, 0)} // Daily bonus simulation (1 ticket for 0 rub)
-                    className="mt-2 bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer"
+                    className="mt-2 w-full bg-[#F91155]/10 hover:bg-[#F91155]/20 text-[#F91155] px-4 py-2.5 rounded-xl text-xs font-black transition-all cursor-pointer uppercase tracking-wider active:scale-98"
                   >
                     ЗАБРАТЬ
                   </button>
@@ -964,41 +1022,51 @@ export default function App() {
 
                 {/* Ticket Shop Row (col-span-1 md:col-span-3) */}
                 <div className="md:col-span-3 grid grid-cols-1 sm:grid-cols-3 gap-5">
-                  <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] border border-slate-200 p-5 flex flex-col justify-between shadow-sm min-h-[140px]">
+                  <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] border border-slate-200 p-5 flex flex-col justify-between shadow-sm hover:shadow-md hover:border-[#005BFF]/30 transition-all duration-300 min-h-[145px] group">
                     <div>
-                      <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Старт</div>
+                      <div className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-slate-300" />
+                        <span>Старт</span>
+                      </div>
                       <div className="text-xl font-black text-slate-800">1 билет</div>
                     </div>
                     <button 
                       onClick={() => handleBuyTickets(1, 50)}
-                      className="bg-slate-50 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 w-full py-2.5 rounded-xl font-bold text-xs text-[#005BFF] transition-all mt-4 cursor-pointer"
+                      className="bg-slate-50 border border-slate-200 hover:border-blue-300 hover:bg-blue-50/50 w-full py-2.5 rounded-xl font-black text-xs text-[#005BFF] transition-all mt-4 cursor-pointer active:scale-[0.98]"
                     >
                       50 ₽
                     </button>
                   </div>
                   
-                  <div className="bg-white rounded-[1.5rem] sm:rounded-[2rem] border-2 border-[#005BFF] p-5 flex flex-col justify-between relative shadow-sm min-h-[140px]">
-                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#005BFF] text-white px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider">Популярно</div>
+                  <div className="bg-white/95 backdrop-blur-md rounded-[2.5rem] border-2 border-[#005BFF] p-5 flex flex-col justify-between relative shadow-md shadow-blue-500/5 hover:shadow-lg hover:shadow-blue-500/10 transition-all duration-300 min-h-[145px] group">
+                    <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#005BFF] text-white px-3.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm">Популярно</div>
                     <div>
-                      <div className="text-slate-400 text-[10px] font-black uppercase tracking-widest mb-1">Выгода</div>
+                      <div className="text-slate-400 text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#005BFF] animate-pulse" />
+                        <span>Выгода</span>
+                      </div>
                       <div className="text-xl font-black text-slate-800">5 билетов</div>
                     </div>
                     <button 
                       onClick={() => handleBuyTickets(5, 200)}
-                      className="bg-[#005BFF] hover:bg-blue-600 w-full py-2.5 rounded-xl font-bold text-xs text-white transition-all mt-4 cursor-pointer"
+                      className="bg-[#005BFF] hover:bg-blue-600 w-full py-2.5 rounded-xl font-black text-xs text-white transition-all mt-4 cursor-pointer shadow-md shadow-blue-200/40 active:scale-[0.98]"
                     >
                       200 ₽
                     </button>
                   </div>
 
-                  <div className="bg-gradient-to-br from-[#F91155] to-[#FF4E8D] rounded-[1.5rem] sm:rounded-[2rem] p-5 flex flex-col justify-between text-white shadow-sm min-h-[140px]">
+                  <div className="bg-gradient-to-br from-[#F91155] to-[#FF4E8D] rounded-[2.5rem] p-5 flex flex-col justify-between text-white shadow-md shadow-pink-500/10 hover:shadow-lg hover:shadow-pink-500/25 transition-all duration-300 min-h-[145px] group relative overflow-hidden">
+                    <div className="absolute right-[-10%] bottom-[-10%] w-20 h-20 bg-white/5 rounded-full pointer-events-none" />
                     <div>
-                      <div className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">Максимум</div>
+                      <div className="text-white/70 text-[9px] font-black uppercase tracking-widest mb-1.5 flex items-center gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-white/40" />
+                        <span>Максимум</span>
+                      </div>
                       <div className="text-xl font-black">15 билетов</div>
                     </div>
                     <button 
                       onClick={() => handleBuyTickets(15, 500)}
-                      className="bg-white hover:bg-slate-50 w-full py-2.5 rounded-xl font-bold text-xs text-[#F91155] transition-all mt-4 cursor-pointer"
+                      className="bg-white hover:bg-slate-50 w-full py-2.5 rounded-xl font-black text-xs text-[#F91155] transition-all mt-4 cursor-pointer shadow-md shadow-pink-800/15 active:scale-[0.98] relative z-10"
                     >
                       500 ₽
                     </button>
@@ -1696,7 +1764,7 @@ export default function App() {
       </main>
 
       {/* Navigation Footer Menu (Highly polished, sticky, Ozon look) */}
-      <footer className="w-full max-w-md fixed bottom-4 bg-white/95 backdrop-blur-md border border-slate-200/85 rounded-3xl py-2.5 px-2 flex justify-around items-center z-20 shadow-xl">
+      <footer className="w-full max-w-md fixed bottom-6 bg-white/90 backdrop-blur-lg border border-white/45 rounded-[2rem] py-2.5 px-3 flex justify-around items-center z-40 shadow-[0_12px_40px_-12px_rgba(0,0,0,0.12)]">
         {[
           { id: "game", label: "Фортуна", icon: Sparkles },
           { id: "buy", label: "Магазин", icon: Ticket },
@@ -1715,14 +1783,17 @@ export default function App() {
                 // auto scroll to top
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className={`flex flex-col items-center justify-center gap-1 px-2 py-1 rounded-2xl transition-all duration-150 cursor-pointer ${
+              className={`flex flex-col items-center justify-center gap-1 px-3 py-1.5 rounded-2xl transition-all duration-300 relative cursor-pointer group ${
                 isActive 
-                  ? "text-[#F91155] scale-105 font-extrabold" 
-                  : "text-slate-400 hover:text-slate-600 hover:bg-slate-50"
+                  ? "text-[#F91155] scale-[1.05]" 
+                  : "text-slate-400 hover:text-slate-700"
               }`}
             >
-              <Icon size={18} className={isActive ? "stroke-[2.5px]" : "stroke-[2px]"} />
-              <span className="text-[9px] uppercase tracking-wider font-bold">{tab.label}</span>
+              {isActive && (
+                <div className="absolute inset-0 bg-pink-500/[0.05] rounded-2xl -z-10 animate-fade-in" />
+              )}
+              <Icon size={18} className={`transition-transform duration-300 ${isActive ? "stroke-[2.5px] scale-110" : "stroke-[2px] group-hover:scale-105"}`} />
+              <span className="text-[9px] uppercase tracking-wider font-extrabold">{tab.label}</span>
             </button>
           );
         })}
@@ -1730,7 +1801,9 @@ export default function App() {
 
       {/* Celebration Winning claim modal */}
       {showWinModal && wonPrize && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
+        <>
+          <Confetti />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in">
           <div className="bg-white border border-slate-100 rounded-[2.5rem] w-full max-w-sm p-6 relative overflow-hidden shadow-2xl text-slate-800">
             
             {/* Background elements */}
@@ -1828,6 +1901,71 @@ export default function App() {
                 Закрыть
               </button>
 
+            </div>
+          </div>
+        </div>
+        </>
+      )}
+
+      {/* Help / Rules Modal */}
+      {showHelpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in text-slate-800">
+          <div className="bg-white border border-slate-100 rounded-[2.5rem] w-full max-w-md p-6 relative overflow-hidden shadow-2xl flex flex-col max-h-[85vh]">
+            {/* Header */}
+            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
+              <div className="flex items-center gap-2">
+                <div className="h-8 w-8 rounded-xl bg-pink-50 flex items-center justify-center text-[#F91155]">
+                  <Info size={16} />
+                </div>
+                <h3 className="font-black text-slate-900 text-sm uppercase tracking-wide">Правила и Инструкция</h3>
+              </div>
+              <button 
+                onClick={() => setShowHelpModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-xs font-bold uppercase cursor-pointer"
+              >
+                Закрыть
+              </button>
+            </div>
+
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto py-4 flex-1 space-y-4 pr-1 scrollbar-thin">
+              <div className="space-y-1">
+                <h4 className="font-extrabold text-xs text-[#005BFF] uppercase tracking-wider">🎪 1. Как играть в Колесо Фортуны</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Нажмите на кнопку <span className="font-bold text-slate-800">«КРУТИТЬ»</span> в центре колеса. Одно вращение стоит ровно 1 билет. Алгоритм выберет приз согласно шансам выпадения.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="font-extrabold text-xs text-[#005BFF] uppercase tracking-wider">📦 2. Получение и Доставка призов</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  При выигрыше физических призов (смартфоны, приставки, наушники) вам будет предложена форма доставки. Заполните её, и администратор вышлет ваш приз с бесплатной курьерской доставкой. Бонусные билеты и промокоды зачисляются мгновенно.
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="font-extrabold text-xs text-[#005BFF] uppercase tracking-wider">🎫 3. Где получить билеты</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  Вы можете получать бесплатные билеты за ежедневный вход (вкладка «Купить»), приглашать друзей по реферальному коду (+1 билет за друга), либо покупать пакеты билетов за рубли для большего количества шансов!
+                </p>
+              </div>
+
+              <div className="space-y-1">
+                <h4 className="font-extrabold text-xs text-[#005BFF] uppercase tracking-wider">🏆 4. Глобальные Розыгрыши</h4>
+                <p className="text-xs text-slate-500 leading-relaxed">
+                  В разделе «Розыгрыши» представлены масштабные розыгрыши супер-призов. Покупайте входные билеты и участвуйте вместе со всеми пользователями. Победитель выбирается случайным образом из всех купленных билетов после окончания времени розыгрыша!
+                </p>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="pt-4 border-t border-slate-100 flex justify-end">
+              <button 
+                onClick={() => setShowHelpModal(false)}
+                className="px-5 py-2.5 rounded-xl bg-[#005BFF] hover:bg-blue-600 text-white font-extrabold text-xs cursor-pointer shadow-lg shadow-blue-100 transition-all"
+              >
+                ПОНЯТНО
+              </button>
             </div>
           </div>
         </div>
